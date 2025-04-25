@@ -1,25 +1,40 @@
-from typing import Any
-
 from pydantic import BaseModel
-
-fake_users_db: dict[str, dict[str, Any]] = {
-    "johndoe": {
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
-        "disabled": False,
-    }
-}
 
 
 class UserInDB(BaseModel):
-    hashed_password: str
+    password: str
     username: str
     full_name: str | None = None
 
 
-def get_by_username(username: str):
+fake_users_db: dict[str, dict[str, UserInDB]] = {
+    "johndoe": UserInDB.parse_obj(
+        {
+            "username": "johndoe",
+            "full_name": "John Doe",
+            "password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
+        }
+    ),
+}
+
+
+class UsernameIsAlreadyTakenError(Exception): ...
+
+
+def get_by_username(username: str) -> UserInDB | None:
     if username in fake_users_db:
-        user_dict = fake_users_db[username]
-        return UserInDB(**user_dict)
+        return fake_users_db[username]
+    else:
+        return None
+
+
+def create_user(username: str, full_name: str, password: str) -> UserInDB:
+    existing_user = get_by_username(username)
+    if existing_user:
+        raise UsernameIsAlreadyTakenError(username)
+    fake_users_db[username] = UserInDB(
+        username=username,
+        full_name=full_name,
+        password=password,
+    )
+    return fake_users_db[username]
