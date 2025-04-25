@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from api.dependencies import get_current_user
 from api.schema import User
 
-router = APIRouter(prefix="/users")
+router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/me", response_model=User)

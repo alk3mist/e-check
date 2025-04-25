@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from api.schema import Token
 from services import auth
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/token")
