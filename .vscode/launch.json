@@ -10,10 +10,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
-            "args": ["main:app", "--reload"],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            },
+            "args": ["main:app", "--app-dir=${workspaceFolder}/src", "--reload"],
             "jinja": false,
         }
     ]
