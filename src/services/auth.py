@@ -5,7 +5,7 @@ import jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
-from services import auth, users
+from services import users
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -48,14 +48,14 @@ def authenticate_user(username: str, password: str) -> users.UserInDB | None:
     user = users.get_by_username(username)
     if not user:
         return None
-    if not auth.verify_password(password, user.hashed_password):
+    if not verify_password(password, user.password):
         return None
     return user
 
 
 def validate_token(token: str) -> TokenData:
     try:
-        payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])  # type: ignore
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # type: ignore
         username = payload.get("sub")
         if username is None:
             raise InvalidTokenError
