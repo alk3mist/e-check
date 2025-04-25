@@ -7,6 +7,9 @@ class UserInDB(BaseModel):
     full_name: str | None = None
 
 
+class UsernameIsAlreadyTakenError(Exception): ...
+
+
 fake_users_db: dict[str, UserInDB] = {
     "johndoe": UserInDB.model_validate(
         {
@@ -18,9 +21,6 @@ fake_users_db: dict[str, UserInDB] = {
 }
 
 
-class UsernameIsAlreadyTakenError(Exception): ...
-
-
 def get_by_username(username: str) -> UserInDB | None:
     if username in fake_users_db:
         return fake_users_db[username]
@@ -30,7 +30,7 @@ def get_by_username(username: str) -> UserInDB | None:
 
 def create_user(username: str, full_name: str, password: str) -> UserInDB:
     existing_user = get_by_username(username)
-    if existing_user:
+    if existing_user is not None:
         raise UsernameIsAlreadyTakenError(username)
     fake_users_db[username] = UserInDB(
         username=username,
