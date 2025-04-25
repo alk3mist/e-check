@@ -10,7 +10,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
-            "args": ["main:app", "--app-dir=${workspaceFolder}/src", "--reload"],
+            "args": ["e_check.main:app", "--app-dir=${workspaceFolder}/src", "--reload"],
             "jinja": false,
         }
     ]

@@ -7,8 +7,8 @@ class UserInDB(BaseModel):
     full_name: str | None = None
 
 
-fake_users_db: dict[str, dict[str, UserInDB]] = {
-    "johndoe": UserInDB.parse_obj(
+fake_users_db: dict[str, UserInDB] = {
+    "johndoe": UserInDB.model_validate(
         {
             "username": "johndoe",
             "full_name": "John Doe",

@@ -5,7 +5,7 @@ import jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
-from services import users
+from e_check.services import users
 
 # to get a string like this run:
 # openssl rand -hex 32
