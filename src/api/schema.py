@@ -6,10 +6,6 @@ class Token(BaseModel):
     token_type: str
 
 
-class TokenData(BaseModel):
-    username: str
-
-
 class User(BaseModel):
     username: str
     full_name: str | None = None
