@@ -58,3 +58,8 @@ def test_authenticated_user_can_access_own_profile(client: TestClient):
     response = client.get("/users/me", headers={"authorization": f"Bearer {token}"})
 
     assert response.status_code == status.HTTP_200_OK
+
+
+def test_unauthenticated_user_cannot_access_profile(client: TestClient):
+    response = client.get("/users/me")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
