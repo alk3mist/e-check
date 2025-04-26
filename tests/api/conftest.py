@@ -13,13 +13,10 @@ def user_service() -> IUserService:
     return InMemoryUserService(users={})
 
 
-@pytest.fixture(scope="function")
-def override_dependencies(user_service: IUserService) -> Iterator[None]:
-    app.dependency_overrides[get_user_service] = lambda: user_service
-    yield
-    app.dependency_overrides = {}
-
-
 @pytest.fixture
-def client(override_dependencies: None) -> TestClient:
-    return TestClient(app)
+def client(user_service: IUserService) -> Iterator[TestClient]:
+    app.dependency_overrides[get_user_service] = lambda: user_service
+
+    yield TestClient(app)
+
+    app.dependency_overrides = {}
