@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from e_check.api.dependencies import get_current_user
+from e_check.api.dependencies import get_current_user, get_user_service
 from e_check.api.schema import RegisterUser, User
-from e_check.services import auth, users
+from e_check.services import users
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -13,14 +13,14 @@ router = APIRouter(prefix="/users", tags=["users"])
     "/register", status_code=status.HTTP_201_CREATED, summary="Register a new user"
 )
 async def register_user(
-    create_user: RegisterUser,
+    register_user: RegisterUser,
+    user_service: users.IUserService = Depends(get_user_service),
 ) -> User:
-    hashed_password = auth.get_password_hash(create_user.password.get_secret_value())
     try:
-        user = users.create_user(
-            username=create_user.username,
-            full_name=create_user.full_name,
-            password=hashed_password,
+        user = user_service.create_user(
+            username=register_user.username,
+            full_name=register_user.full_name,
+            password=register_user.password.get_secret_value(),
         )
     except users.UsernameIsAlreadyTakenError:
         raise HTTPException(status.HTTP_409_CONFLICT, "Username is already taken.")

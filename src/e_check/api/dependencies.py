@@ -1,16 +1,24 @@
+from functools import cache
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from e_check.services import auth, users
+from e_check.services import auth
+from e_check.services.users import InMemoryUserService, IUserService, UserInDB
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
+@cache
+def get_user_service():
+    return InMemoryUserService(users={})
+
+
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
-) -> users.UserInDB:
+    user_service: IUserService = Depends(get_user_service),
+) -> UserInDB:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -22,7 +30,7 @@ async def get_current_user(
     except auth.InvalidTokenError:
         raise credentials_exception
 
-    user = users.get_by_username(username=token_data.username)
+    user = user_service.get_by_username(username=token_data.username)
     if user is None:
         raise credentials_exception
     return user

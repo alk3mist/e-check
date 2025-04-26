@@ -1,40 +1,62 @@
+from dataclasses import dataclass
+from typing import Final, Protocol
+
+from passlib.context import CryptContext
 from pydantic import BaseModel
 
 
 class UserInDB(BaseModel):
     password: str
     username: str
-    full_name: str | None = None
+    full_name: str
 
 
 class UsernameIsAlreadyTakenError(Exception): ...
 
 
-fake_users_db: dict[str, UserInDB] = {
-    "johndoe": UserInDB.model_validate(
-        {
-            "username": "johndoe",
-            "full_name": "John Doe",
-            "password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
-        }
-    ),
-}
+class IUserService(Protocol):
+    def create_user(self, username: str, full_name: str, password: str) -> UserInDB: ...
+    def get_by_username(self, username: str) -> UserInDB | None: ...
+    def authenticate_user(self, username: str, password: str) -> UserInDB | None: ...
 
 
-def get_by_username(username: str) -> UserInDB | None:
-    if username in fake_users_db:
-        return fake_users_db[username]
-    else:
-        return None
+@dataclass
+class InMemoryUserService:
+    users: dict[str, UserInDB]
+
+    def get_by_username(self, username: str) -> UserInDB | None:
+        if username in self.users:
+            return self.users[username]
+        else:
+            return None
+
+    def create_user(self, username: str, full_name: str, password: str) -> UserInDB:
+        hashed_password = get_password_hash(password)
+        existing_user = self.get_by_username(username)
+        if existing_user is not None:
+            raise UsernameIsAlreadyTakenError(username)
+        self.users[username] = UserInDB(
+            username=username,
+            full_name=full_name,
+            password=hashed_password,
+        )
+        return self.users[username]
+
+    def authenticate_user(self, username: str, password: str) -> UserInDB | None:
+        user = self.get_by_username(username)
+        if not user:
+            return None
+        if not verify_password(password, user.password):
+            return None
+        return user
 
 
-def create_user(username: str, full_name: str, password: str) -> UserInDB:
-    existing_user = get_by_username(username)
-    if existing_user is not None:
-        raise UsernameIsAlreadyTakenError(username)
-    fake_users_db[username] = UserInDB(
-        username=username,
-        full_name=full_name,
-        password=password,
-    )
-    return fake_users_db[username]
+pwd_context: Final = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)

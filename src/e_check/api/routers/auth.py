@@ -3,8 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
+from e_check.api.dependencies import get_user_service
 from e_check.api.schema import Token
 from e_check.services import auth
+from e_check.services.users import IUserService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -12,8 +14,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/token")
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    user_service: IUserService = Depends(get_user_service),
 ) -> Token:
-    user = auth.authenticate_user(form_data.username, form_data.password)
+    user = user_service.authenticate_user(form_data.username, form_data.password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
