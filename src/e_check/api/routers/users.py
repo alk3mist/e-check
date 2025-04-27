@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from e_check.api.dependencies import get_current_user, get_user_service
-from e_check.api.schema import RegisterUser, User
+from e_check.dto import RegisterUser, User
 from e_check.services import users
 
 router = APIRouter(prefix="/users", tags=["users"])

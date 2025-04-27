@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from e_check.api.dependencies import get_user_service
-from e_check.api.schema import Token
+from e_check.dto import Token
 from e_check.services import auth
 from e_check.services.users import IUserService
 
