@@ -4,15 +4,30 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
+from e_check.dto import User
 from e_check.services import auth
-from e_check.services.users import InMemoryUserService, IUserService, UserInDB
+from e_check.services.checks import ICheckService, InMemoryCheckService
+from e_check.services.users import InMemoryUserService, IUserService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 @cache
 def get_user_service():
-    return InMemoryUserService(users={})
+    user_service = InMemoryUserService()
+    user_service.create_user(
+        username="john-boris",
+        full_name="ФОП Джонсонюк Борис",
+        password="super-secret",
+    )
+    return user_service
+
+
+@cache
+def get_check_service(
+    user_service: IUserService = Depends(get_user_service),
+) -> ICheckService:
+    return InMemoryCheckService(user_service)
 
 
 async def get_current_user(
