@@ -1,0 +1,155 @@
+import uuid
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Literal
+
+from e_check.dto import Check, CreateCheck, User
+from e_check.services.check_printer import CheckPrinter
+from e_check.services.users import IUserService
+
+
+class CheckNotFoundError(Exception): ...
+
+
+class ICheckService(ABC):
+    @abstractmethod
+    def create_check(self, user: User, new_check: CreateCheck) -> Check: ...
+
+    @abstractmethod
+    def count_checks(
+        self,
+        *,
+        user: User,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: Literal["cash", "cashless"] | None = None,
+    ) -> int: ...
+
+    @abstractmethod
+    def get_checks(
+        self,
+        *,
+        user: User,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: Literal["cash", "cashless"] | None = None,
+        limit: int,
+        offset: int,
+    ) -> Iterable[Check]: ...
+
+    @abstractmethod
+    def print_check(self, check_id: uuid.UUID) -> str: ...
+
+
+@dataclass
+class InMemoryCheckService(ICheckService):
+    user_service: IUserService = field(hash=False)
+    user_checks: defaultdict[str, list[Check]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+
+    def create_check(self, user: User, new_check: CreateCheck) -> Check:
+        check = Check(
+            id=uuid.uuid4(),
+            products=new_check.products,
+            payment=new_check.payment,
+            created_at=datetime.now(),
+        )
+
+        self.user_checks[user.username].append(check)
+
+        return check
+
+    def get_checks(
+        self,
+        *,
+        user: User,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: None | Literal["cash"] | Literal["cashless"] = None,
+        limit: int,
+        offset: int,
+    ) -> Iterable[Check]:
+        checks = self._get_all_checks(
+            user=user,
+            date_gt=date_gt,
+            check_total_gt=check_total_gt,
+            payment_type=payment_type,
+        )
+        return list(checks)[offset : offset + limit]
+
+    def count_checks(
+        self,
+        *,
+        user: User,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: Literal["cash", "cashless"] | None = None,
+    ) -> int:
+        checks = self._get_all_checks(
+            user=user,
+            date_gt=date_gt,
+            check_total_gt=check_total_gt,
+            payment_type=payment_type,
+        )
+        return len(list(checks))
+
+    def print_check(self, check_id: uuid.UUID) -> str:
+        check_info = self._get_check_by_id_with_username(check_id)
+        if check_info is None:
+            raise CheckNotFoundError
+
+        username, check = check_info
+        user = self.user_service.get_by_username(username)
+        assert user is not None
+
+        printer = CheckPrinter(width=32)
+        content = printer.render_check(user, check)
+        return content
+
+    def _get_check_by_id_with_username(
+        self, check_id: uuid.UUID
+    ) -> tuple[str, Check] | None:
+        for username, checks in self.user_checks.items():
+            for check in checks:
+                if check.id == check_id:
+                    return username, check
+        else:
+            return None
+
+    def _get_all_checks(
+        self,
+        *,
+        user: User,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: None | Literal["cash"] | Literal["cashless"] = None,
+    ) -> Iterable[Check]:
+        satisfied = self._build_filters(
+            date_gt=date_gt,
+            check_total_gt=check_total_gt,
+            payment_type=payment_type,
+        )
+        checks = filter(satisfied, self.user_checks[user.username])
+        return checks
+
+    def _build_filters(
+        self,
+        *,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: Literal["cash", "cashless"] | None = None,
+    ) -> Callable[[Check], bool]:
+        filters: list[Callable[[Check], bool]] = []
+        if date_gt is not None:
+            filters.append(lambda c: c.created_at.date() > date_gt)
+        if check_total_gt is not None:
+            filters.append(lambda c: c.total > check_total_gt)
+        if payment_type is not None:
+            filters.append(lambda c: c.payment.type == payment_type)
+
+        return lambda c: all((f(c) for f in filters))
