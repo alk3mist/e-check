@@ -50,7 +50,11 @@ async def list_checks(
     return PaginatedResponse[Check].from_iterable(pagination, checks, total_count)
 
 
-@router.get("/checks/{check_id}/print", response_class=Response)
+class PlainTextResponse(Response):
+    media_type = "text/plain"
+
+
+@router.get("/checks/{check_id}/print", response_class=PlainTextResponse)
 async def print_check(
     check_service: ICheckService = Depends(get_check_service),
     *,
@@ -61,4 +65,4 @@ async def print_check(
     except CheckNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    return Response(media_type="text/plain", content=check_print)
+    return PlainTextResponse(content=check_print)
