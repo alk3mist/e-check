@@ -1,8 +1,6 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
-# /users/register
-
 
 def test_unauthenticated_user_can_register(client: TestClient):
     data = {
@@ -33,9 +31,6 @@ def test_if_username_already_taken_then_registration_fails(client: TestClient):
     second_response = client.post("/users/register", json=data)
 
     assert second_response.status_code == status.HTTP_409_CONFLICT
-
-
-# /users/me
 
 
 def test_authenticated_user_can_access_own_profile(client: TestClient):

@@ -1,8 +1,6 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
-# /auth/login
-
 
 def test_existing_user_can_get_access_token(client: TestClient):
     user_data = {
