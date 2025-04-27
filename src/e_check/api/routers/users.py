@@ -25,9 +25,9 @@ async def register_user(
     except users.UsernameIsAlreadyTakenError:
         raise HTTPException(status.HTTP_409_CONFLICT, "Username is already taken.")
     else:
-        return User.model_validate(user, from_attributes=True)
+        return user
 
 
 @router.get("/me", summary="Get profile of the authenticated user")
 async def get_me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
-    return User.model_validate(current_user, from_attributes=True)
+    return current_user

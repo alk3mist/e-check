@@ -18,7 +18,7 @@ def get_user_service():
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     user_service: IUserService = Depends(get_user_service),
-) -> UserInDB:
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
