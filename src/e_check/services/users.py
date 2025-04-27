@@ -19,9 +19,11 @@ class UsernameIsAlreadyTakenError(Exception): ...
 
 
 class IUserService(Protocol):
-    def create_user(self, username: str, full_name: str, password: str) -> User: ...
-    def get_by_username(self, username: str) -> User | None: ...
-    def authenticate_user(self, username: str, password: str) -> User | None: ...
+    async def create_user(
+        self, username: str, full_name: str, password: str
+    ) -> User: ...
+    async def get_by_username(self, username: str) -> User | None: ...
+    async def authenticate_user(self, username: str, password: str) -> User | None: ...
 
 
 @dataclass(unsafe_hash=True)
@@ -38,16 +40,16 @@ class InMemoryUserService:
         else:
             return None
 
-    def get_by_username(self, username: str) -> User | None:
+    async def get_by_username(self, username: str) -> User | None:
         user = self._get_by_username(username)
         if user is None:
             return None
         else:
             return User.model_validate(user, from_attributes=True)
 
-    def create_user(self, username: str, full_name: str, password: str) -> User:
+    async def create_user(self, username: str, full_name: str, password: str) -> User:
         hashed_password = get_password_hash(password)
-        existing_user = self.get_by_username(username)
+        existing_user = await self.get_by_username(username)
         if existing_user is not None:
             raise UsernameIsAlreadyTakenError(username)
         new_user = (
@@ -61,7 +63,7 @@ class InMemoryUserService:
         self._users = (*self._users, new_user)
         return User.model_validate(self.users[username], from_attributes=True)
 
-    def authenticate_user(self, username: str, password: str) -> User | None:
+    async def authenticate_user(self, username: str, password: str) -> User | None:
         user = self._get_by_username(username)
         if not user:
             return None

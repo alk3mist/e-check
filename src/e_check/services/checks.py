@@ -17,10 +17,10 @@ class CheckNotFoundError(Exception): ...
 
 class ICheckService(ABC):
     @abstractmethod
-    def create_check(self, user: User, new_check: CreateCheck) -> Check: ...
+    async def create_check(self, user: User, new_check: CreateCheck) -> Check: ...
 
     @abstractmethod
-    def count_checks(
+    async def count_checks(
         self,
         *,
         user: User,
@@ -30,7 +30,7 @@ class ICheckService(ABC):
     ) -> int: ...
 
     @abstractmethod
-    def get_checks(
+    async def get_checks(
         self,
         *,
         user: User,
@@ -42,7 +42,7 @@ class ICheckService(ABC):
     ) -> Iterable[Check]: ...
 
     @abstractmethod
-    def print_check(self, check_id: uuid.UUID) -> str: ...
+    async def print_check(self, check_id: uuid.UUID) -> str: ...
 
 
 @dataclass
@@ -52,7 +52,7 @@ class InMemoryCheckService(ICheckService):
         default_factory=lambda: defaultdict(list)
     )
 
-    def create_check(self, user: User, new_check: CreateCheck) -> Check:
+    async def create_check(self, user: User, new_check: CreateCheck) -> Check:
         check = Check(
             id=uuid.uuid4(),
             products=new_check.products,
@@ -64,7 +64,7 @@ class InMemoryCheckService(ICheckService):
 
         return check
 
-    def get_checks(
+    async def get_checks(
         self,
         *,
         user: User,
@@ -82,7 +82,7 @@ class InMemoryCheckService(ICheckService):
         )
         return list(checks)[offset : offset + limit]
 
-    def count_checks(
+    async def count_checks(
         self,
         *,
         user: User,
@@ -98,13 +98,13 @@ class InMemoryCheckService(ICheckService):
         )
         return len(list(checks))
 
-    def print_check(self, check_id: uuid.UUID) -> str:
+    async def print_check(self, check_id: uuid.UUID) -> str:
         check_info = self._get_check_by_id_with_username(check_id)
         if check_info is None:
             raise CheckNotFoundError
 
         username, check = check_info
-        user = self.user_service.get_by_username(username)
+        user = await self.user_service.get_by_username(username)
         assert user is not None
 
         printer = CheckPrinter(width=32)

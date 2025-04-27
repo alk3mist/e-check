@@ -17,7 +17,7 @@ async def register_user(
     user_service: users.IUserService = Depends(get_user_service),
 ) -> User:
     try:
-        user = user_service.create_user(
+        user = await user_service.create_user(
             username=register_user.username,
             full_name=register_user.full_name,
             password=register_user.password.get_secret_value(),

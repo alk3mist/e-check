@@ -9,8 +9,8 @@ from e_check.services.users import IUserService
 
 
 @pytest.fixture
-def valid_token(client: TestClient, user_service: IUserService) -> str:
-    user = user_service.create_user(
+async def valid_token(client: TestClient, user_service: IUserService) -> str:
+    user = await user_service.create_user(
         username="john",
         full_name="doe",
         password="super-secret",
@@ -40,7 +40,8 @@ def check_factory() -> CheckFactory:
     return _check_factory
 
 
-def test_authenticated_user_can_create_check(
+@pytest.mark.anyio
+async def test_authenticated_user_can_create_check(
     client: TestClient, valid_token: str, check_factory: CheckFactory
 ):
     check_data = check_factory(
@@ -62,7 +63,8 @@ def test_unauthenticated_user_cannot_create_check(client: TestClient):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_payment_amount_cannot_be_lower_than_products_total(
+@pytest.mark.anyio
+async def test_payment_amount_cannot_be_lower_than_products_total(
     client: TestClient, valid_token: str
 ):
     check_data: dict[str, Any] = {
@@ -94,7 +96,8 @@ def test_payment_amount_cannot_be_lower_than_products_total(
     )
 
 
-def test_authenticated_user_can_list_own_checks(
+@pytest.mark.anyio
+async def test_authenticated_user_can_list_own_checks(
     client: TestClient, valid_token: str, check_factory: CheckFactory
 ):
     check_one_data = check_factory(
@@ -118,7 +121,8 @@ def test_authenticated_user_can_list_own_checks(
     assert len(items) == 2
 
 
-def test_filter_list_of_checks_by_payment_type(
+@pytest.mark.anyio
+async def test_filter_list_of_checks_by_payment_type(
     client: TestClient, valid_token: str, check_factory: CheckFactory
 ):
     check_one_data = check_factory(
@@ -144,7 +148,8 @@ def test_filter_list_of_checks_by_payment_type(
     assert float(items[0]["payment"]["amount"]) == check_one_data["payment"]["amount"]
 
 
-def test_pagination_for_list_of_checks(
+@pytest.mark.anyio
+async def test_pagination_for_list_of_checks(
     client: TestClient, valid_token: str, check_factory: CheckFactory
 ):
     checks: list[dict[str, Any]] = []

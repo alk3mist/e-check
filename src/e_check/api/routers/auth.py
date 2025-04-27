@@ -16,7 +16,7 @@ async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     user_service: IUserService = Depends(get_user_service),
 ) -> Token:
-    user = user_service.authenticate_user(form_data.username, form_data.password)
+    user = await user_service.authenticate_user(form_data.username, form_data.password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

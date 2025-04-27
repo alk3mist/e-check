@@ -9,6 +9,12 @@ from e_check.services.checks import ICheckService, InMemoryCheckService
 from e_check.services.users import InMemoryUserService, IUserService
 
 
+# https://anyio.readthedocs.io/en/stable/testing.html#specifying-the-backends-to-run-on
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
 @pytest.fixture(scope="function")
 def user_service() -> IUserService:
     return InMemoryUserService()

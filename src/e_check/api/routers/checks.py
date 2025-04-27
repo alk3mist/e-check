@@ -19,7 +19,7 @@ async def create_check(
     user: User = Depends(get_current_user),
     check_service: ICheckService = Depends(get_check_service),
 ) -> Check:
-    check = check_service.create_check(user, create_check)
+    check = await check_service.create_check(user, create_check)
     return check
 
 
@@ -33,13 +33,13 @@ async def list_checks(
     payment_type: Literal["cash", "cashless"] | None = None,
     pagination: Pagination = Depends(Pagination.query()),
 ) -> PaginatedResponse[Check]:
-    total_count = check_service.count_checks(
+    total_count = await check_service.count_checks(
         user=user,
         date_gt=date_gt,
         check_total_gt=check_total_gt,
         payment_type=payment_type,
     )
-    checks = check_service.get_checks(
+    checks = await check_service.get_checks(
         user=user,
         date_gt=date_gt,
         check_total_gt=check_total_gt,
@@ -61,7 +61,7 @@ async def print_check(
     check_id: UUID,
 ):
     try:
-        check_print = check_service.print_check(check_id)
+        check_print = await check_service.print_check(check_id)
     except CheckNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
