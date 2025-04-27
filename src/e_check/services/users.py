@@ -2,17 +2,12 @@ from dataclasses import dataclass, field
 from typing import Final, Protocol
 
 from passlib.context import CryptContext
-from pydantic import BaseModel, ConfigDict
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from e_check.db.models import User as UserInDB
 from e_check.dto import User
-
-
-class UserInDB(BaseModel):
-    password: str
-    username: str
-    full_name: str
-
-    model_config = ConfigDict(frozen=True)
 
 
 class UsernameIsAlreadyTakenError(Exception): ...
@@ -65,6 +60,48 @@ class InMemoryUserService:
 
     async def authenticate_user(self, username: str, password: str) -> User | None:
         user = self._get_by_username(username)
+        if not user:
+            return None
+        if not verify_password(password, user.password):
+            return None
+        return User.model_validate(user, from_attributes=True)
+
+
+@dataclass
+class DbUserService:
+    session: AsyncSession
+
+    async def create_user(self, username: str, full_name: str, password: str) -> User:
+        hashed_password = get_password_hash(password)
+        user = UserInDB(
+            username=username,
+            full_name=full_name,
+            password=hashed_password,
+        )
+        try:
+            self.session.add(user)
+            await self.session.commit()
+            await self.session.refresh(user)
+        except IntegrityError:
+            raise UsernameIsAlreadyTakenError
+        return User.model_validate(user, from_attributes=True)
+
+    async def _get_by_username(self, username: str) -> UserInDB | None:
+        user = await self.session.scalar(
+            select(UserInDB).where(UserInDB.username == username)
+        )
+        return user
+
+    async def get_by_username(self, username: str) -> User | None:
+        user = await self.session.scalar(
+            select(UserInDB).where(UserInDB.username == username)
+        )
+        if user is None:
+            return None
+        return User.model_validate(user, from_attributes=True)
+
+    async def authenticate_user(self, username: str, password: str) -> User | None:
+        user = await self._get_by_username(username)
         if not user:
             return None
         if not verify_password(password, user.password):
