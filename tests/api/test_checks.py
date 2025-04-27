@@ -9,7 +9,7 @@ from e_check.services.users import IUserService
 
 
 @pytest.fixture
-async def valid_token(client: TestClient, user_service: IUserService) -> str:
+async def valid_token(user_service: IUserService) -> str:
     user = await user_service.create_user(
         username="john",
         full_name="doe",
@@ -57,7 +57,8 @@ async def test_authenticated_user_can_create_check(
     assert response.status_code == status.HTTP_201_CREATED, response.content
 
 
-def test_unauthenticated_user_cannot_create_check(client: TestClient):
+@pytest.mark.anyio
+async def test_unauthenticated_user_cannot_create_check(client: TestClient):
     response = client.post("/checks", json={})
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

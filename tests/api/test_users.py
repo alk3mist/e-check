@@ -1,8 +1,10 @@
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 
-def test_unauthenticated_user_can_register(client: TestClient):
+@pytest.mark.anyio
+async def test_unauthenticated_user_can_register(client: TestClient):
     data = {
         "username": "john",
         "full_name": "d",
@@ -18,7 +20,8 @@ def test_unauthenticated_user_can_register(client: TestClient):
     }
 
 
-def test_if_username_already_taken_then_registration_fails(client: TestClient):
+@pytest.mark.anyio
+async def test_if_username_already_taken_then_registration_fails(client: TestClient):
     data = {
         "username": "john",
         "full_name": "d",
@@ -33,7 +36,8 @@ def test_if_username_already_taken_then_registration_fails(client: TestClient):
     assert second_response.status_code == status.HTTP_409_CONFLICT
 
 
-def test_authenticated_user_can_access_own_profile(client: TestClient):
+@pytest.mark.anyio
+async def test_authenticated_user_can_access_own_profile(client: TestClient):
     user_data = {
         "username": "john",
         "full_name": "d",
@@ -55,6 +59,7 @@ def test_authenticated_user_can_access_own_profile(client: TestClient):
     assert response.status_code == status.HTTP_200_OK
 
 
-def test_unauthenticated_user_cannot_access_profile(client: TestClient):
+@pytest.mark.anyio
+async def test_unauthenticated_user_cannot_access_profile(client: TestClient):
     response = client.get("/users/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

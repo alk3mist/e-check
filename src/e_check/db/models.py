@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import Enum, ForeignKey, MetaData, String, Uuid, func, select
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -36,8 +36,8 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
 
-    checks: Mapped["Check"] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    checks: Mapped[list["Check"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", uselist=True, lazy="raise"
     )
 
 
@@ -50,9 +50,9 @@ class Product(Base):
     price: Mapped[Decimal] = mapped_column()
     quantity: Mapped[Decimal] = mapped_column()
 
-    check: Mapped["Check"] = relationship(back_populates="products")
+    check: Mapped["Check"] = relationship(back_populates="products", lazy="raise")
 
-    total: Mapped[Decimal] = column_property(name * price)
+    total: Mapped[Decimal] = column_property(quantity * price)
 
 
 class Payment(Base):
@@ -61,26 +61,34 @@ class Payment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     check_id: Mapped[int] = mapped_column(ForeignKey("check.id"))
     type: Mapped[Literal["cash", "cashless"]] = mapped_column(
-        Enum("cash", "cashless", name="payment_type_enum")
+        Enum("cash", "cashless", name="payment_type_enum", meta=Base.metadata)
     )
     amount: Mapped[Decimal] = mapped_column()
-    check: Mapped["Check"] = relationship(back_populates="payment")
+    check: Mapped["Check"] = relationship(back_populates="payment", lazy="raise")
 
 
 class Check(Base):
     __tablename__ = "check"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    external_id: Mapped[UUID] = mapped_column(Uuid(native_uuid=True), nullable=False)
+    external_id: Mapped[UUID] = mapped_column(
+        Uuid(native_uuid=True), nullable=False, default=uuid4
+    )
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(nullable=False)
 
-    user: Mapped[User] = relationship(back_populates="checks")
+    user: Mapped[User] = relationship(back_populates="checks", lazy="joined")
     products: Mapped[list[Product]] = relationship(
-        back_populates="check", cascade="all, delete-orphan"
+        back_populates="check",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        uselist=True,
     )
     payment: Mapped[Payment] = relationship(
-        back_populates="check", cascade="all, delete-orphan"
+        back_populates="check",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        uselist=False,
     )
 
     total: Mapped["Decimal"] = column_property(

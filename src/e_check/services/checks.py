@@ -7,6 +7,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
+from sqlalchemy import Select, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from e_check.db import models as db
 from e_check.dto import Check, CreateCheck, User
 from e_check.services.check_printer import CheckPrinter
 from e_check.services.users import IUserService
@@ -153,3 +157,107 @@ class InMemoryCheckService(ICheckService):
             filters.append(lambda c: c.payment.type == payment_type)
 
         return lambda c: all((f(c) for f in filters))
+
+
+@dataclass
+class DbCheckService(ICheckService):
+    session: AsyncSession
+
+    async def create_check(self, user: User, new_check: CreateCheck) -> Check:
+        products = [
+            db.Product(name=p.name, price=p.price, quantity=p.quantity)
+            for p in new_check.products
+        ]
+        payment = db.Payment(
+            type=new_check.payment.type, amount=new_check.payment.amount
+        )
+        db_user = await self.session.scalar(
+            select(db.User).where(db.User.username == user.username)
+        )
+        db_check = db.Check(
+            user=db_user,
+            products=products,
+            payment=payment,
+            created_at=datetime.now(),
+        )
+
+        self.session.add(db_check)
+        await self.session.commit()
+        await self.session.refresh(db_check)
+
+        check = Check.model_validate(db_check, from_attributes=True, by_alias=True)
+        return check
+
+    async def count_checks(
+        self,
+        *,
+        user: User,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: Literal["cash", "cashless"] | None = None,
+    ) -> int:
+        stmt = (
+            select(func.count(db.Check.id))
+            .join(db.User)
+            .where(db.User.username == user.username)
+        )
+        stmt = self._prepare_stmt(stmt, date_gt, check_total_gt, payment_type)
+        count = await self.session.scalar(stmt)
+        assert count is not None
+        return count
+
+    async def get_checks(
+        self,
+        *,
+        user: User,
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: Literal["cash", "cashless"] | None = None,
+        limit: int,
+        offset: int,
+    ) -> Iterable[Check]:
+        stmt = (
+            select(db.Check)
+            .join(db.User)
+            .where(db.User.username == user.username)
+            .order_by(db.Check.created_at)
+            .limit(limit)
+            .offset(offset)
+        )
+        stmt = self._prepare_stmt(stmt, date_gt, check_total_gt, payment_type)
+        db_checks = await self.session.scalars(stmt)
+        checks = (
+            Check.model_validate(c, from_attributes=True, by_alias=True)
+            for c in db_checks
+        )
+        return checks
+
+    def _prepare_stmt[T](
+        self,
+        stmt: Select[tuple[T]],
+        date_gt: date | None = None,
+        check_total_gt: Decimal | None = None,
+        payment_type: Literal["cash", "cashless"] | None = None,
+    ):
+        if date_gt:
+            stmt = stmt.where(func.date(db.Check.created_at) > date_gt)
+        if check_total_gt:
+            stmt = stmt.where(db.Check.total > check_total_gt)
+        if payment_type:
+            stmt = stmt.join(db.Payment).where(db.Payment.type == payment_type)
+
+        return stmt
+
+    async def print_check(self, check_id: uuid.UUID) -> str:
+        check = await self.session.scalar(
+            select(db.Check).join(db.User).where(db.Check.external_id == check_id)
+        )
+        if not check:
+            raise CheckNotFoundError
+
+        printer = CheckPrinter()
+        content = printer.render_check(
+            User.model_validate(check.user, from_attributes=True),
+            check=Check.model_validate(check, from_attributes=True, by_alias=True),
+        )
+        return content

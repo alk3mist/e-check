@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     SecretStr,
     StringConstraints,
@@ -86,7 +87,7 @@ class CreateCheck(BaseModel):
 
 
 class Check(BaseModel):
-    id: UUID
+    id: Annotated[UUID, Field(validation_alias="external_id")]
     products: Annotated[list[Product], Field(min_length=1)]
     payment: Payment
 
@@ -101,3 +102,5 @@ class Check(BaseModel):
         return self.payment.amount - self.total
 
     created_at: datetime
+
+    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)

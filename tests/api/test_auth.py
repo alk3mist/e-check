@@ -1,8 +1,10 @@
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 
-def test_existing_user_can_get_access_token(client: TestClient):
+@pytest.mark.anyio
+async def test_existing_user_can_get_access_token(client: TestClient):
     user_data = {
         "username": "john",
         "full_name": "doe",
@@ -21,7 +23,10 @@ def test_existing_user_can_get_access_token(client: TestClient):
     assert response_payload["token_type"] == "bearer"
 
 
-def test_if_existing_user_provides_wrong_password_then_login_fails(client: TestClient):
+@pytest.mark.anyio
+async def test_if_existing_user_provides_wrong_password_then_login_fails(
+    client: TestClient,
+):
     user_data = {
         "username": "john",
         "full_name": "doe",

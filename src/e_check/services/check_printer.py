@@ -7,7 +7,7 @@ from e_check.dto import Check, Product, User
 
 @dataclass
 class CheckPrinter:
-    width: int = 30
+    width: int = 32
 
     def render_check(self, user: User, check: Check) -> str:
         content = ""
