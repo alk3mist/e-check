@@ -61,7 +61,7 @@ class Payment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     check_id: Mapped[int] = mapped_column(ForeignKey("check.id"))
     type: Mapped[Literal["cash", "cashless"]] = mapped_column(
-        Enum("cash", "cashless", name="payment_type_enum", meta=Base.metadata)
+        Enum("cash", "cashless", name="payment_type_enum", native_enum=False)
     )
     amount: Mapped[Decimal] = mapped_column()
     check: Mapped["Check"] = relationship(back_populates="payment", lazy="raise")
