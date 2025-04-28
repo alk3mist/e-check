@@ -17,6 +17,7 @@ engine = create_async_engine(get_db_url(), isolation_level="SERIALIZABLE")
 
 def get_engine(url: str | None = None) -> AsyncEngine:
     url = url or get_db_url()
+
     engine = create_async_engine(url, isolation_level="SERIALIZABLE")
     return engine
 

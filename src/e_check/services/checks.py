@@ -185,7 +185,7 @@ class DbCheckService(ICheckService):
         await self.session.commit()
         await self.session.refresh(db_check)
 
-        check = Check.model_validate(db_check, from_attributes=True, by_alias=True)
+        check = Check.model_validate(db_check, from_attributes=True)
         return check
 
     async def count_checks(
@@ -226,10 +226,7 @@ class DbCheckService(ICheckService):
         )
         stmt = self._prepare_stmt(stmt, date_gt, check_total_gt, payment_type)
         db_checks = await self.session.scalars(stmt)
-        checks = (
-            Check.model_validate(c, from_attributes=True, by_alias=True)
-            for c in db_checks
-        )
+        checks = (Check.model_validate(c, from_attributes=True) for c in db_checks)
         return checks
 
     def _prepare_stmt[T](
@@ -258,6 +255,6 @@ class DbCheckService(ICheckService):
         printer = CheckPrinter()
         content = printer.render_check(
             User.model_validate(check.user, from_attributes=True),
-            check=Check.model_validate(check, from_attributes=True, by_alias=True),
+            check=Check.model_validate(check, from_attributes=True),
         )
         return content

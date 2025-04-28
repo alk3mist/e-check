@@ -62,4 +62,5 @@ async def test_authenticated_user_can_access_own_profile(client: TestClient):
 @pytest.mark.anyio
 async def test_unauthenticated_user_cannot_access_profile(client: TestClient):
     response = client.get("/users/me")
+
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

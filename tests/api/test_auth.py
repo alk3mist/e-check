@@ -40,4 +40,5 @@ async def test_if_existing_user_provides_wrong_password_then_login_fails(
         "password": "not-so-secret",
     }
     token_response = client.post("/auth/token", data=token_data)
+
     assert token_response.status_code == status.HTTP_401_UNAUTHORIZED

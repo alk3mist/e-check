@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from testcontainers.postgres import PostgresContainer
 
 from e_check.api.dependencies import get_check_service, get_user_service
@@ -24,12 +24,22 @@ def postgres():
         yield postgres
 
 
+@pytest.fixture(scope="session")
+def sync_engine(postgres: PostgresContainer) -> Engine:
+    engine = create_engine(postgres.get_connection_url())
+    return engine
+
+
+@pytest.fixture(scope="session")
+def async_session(postgres: PostgresContainer) -> async_sessionmaker[AsyncSession]:
+    session = get_session_maker(postgres.get_connection_url())
+    return session
+
+
 @pytest.fixture(scope="function")
-async def session(postgres: PostgresContainer):
-    sync_engine = create_engine(postgres.get_connection_url())
+async def session(sync_engine: Engine, async_session: async_sessionmaker[AsyncSession]):
     Base.metadata.create_all(sync_engine)
 
-    async_session = get_session_maker(postgres.get_connection_url())
     async with async_session() as session:
         yield session
 

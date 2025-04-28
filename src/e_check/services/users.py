@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from e_check.db.models import User as UserInDB
+from e_check.db.models import User as UserInDb
 from e_check.dto import User
 
 
@@ -23,13 +23,13 @@ class IUserService(Protocol):
 
 @dataclass(unsafe_hash=True)
 class InMemoryUserService:
-    _users: tuple[tuple[str, UserInDB], ...] = field(default_factory=tuple)
+    _users: tuple[tuple[str, UserInDb], ...] = field(default_factory=tuple)
 
     @property
-    def users(self) -> dict[str, UserInDB]:
+    def users(self) -> dict[str, UserInDb]:
         return dict(self._users)
 
-    def _get_by_username(self, username: str) -> UserInDB | None:
+    def _get_by_username(self, username: str) -> UserInDb | None:
         if username in self.users:
             return self.users[username]
         else:
@@ -40,23 +40,25 @@ class InMemoryUserService:
         if user is None:
             return None
         else:
-            return User.model_validate(user, from_attributes=True)
+            return _dto_user(user)
 
     async def create_user(self, username: str, full_name: str, password: str) -> User:
         hashed_password = get_password_hash(password)
         existing_user = await self.get_by_username(username)
         if existing_user is not None:
             raise UsernameIsAlreadyTakenError(username)
+
         new_user = (
             username,
-            UserInDB(
+            UserInDb(
                 username=username,
                 full_name=full_name,
                 password=hashed_password,
             ),
         )
         self._users = (*self._users, new_user)
-        return User.model_validate(self.users[username], from_attributes=True)
+
+        return _dto_user(self.users[username])
 
     async def authenticate_user(self, username: str, password: str) -> User | None:
         user = self._get_by_username(username)
@@ -64,7 +66,8 @@ class InMemoryUserService:
             return None
         if not verify_password(password, user.password):
             return None
-        return User.model_validate(user, from_attributes=True)
+
+        return _dto_user(user)
 
 
 @dataclass
@@ -73,7 +76,7 @@ class DbUserService:
 
     async def create_user(self, username: str, full_name: str, password: str) -> User:
         hashed_password = get_password_hash(password)
-        user = UserInDB(
+        user = UserInDb(
             username=username,
             full_name=full_name,
             password=hashed_password,
@@ -84,21 +87,21 @@ class DbUserService:
             await self.session.refresh(user)
         except IntegrityError:
             raise UsernameIsAlreadyTakenError
-        return User.model_validate(user, from_attributes=True)
 
-    async def _get_by_username(self, username: str) -> UserInDB | None:
+        return _dto_user(user)
+
+    async def _get_by_username(self, username: str) -> UserInDb | None:
         user = await self.session.scalar(
-            select(UserInDB).where(UserInDB.username == username)
+            select(UserInDb).where(UserInDb.username == username)
         )
         return user
 
     async def get_by_username(self, username: str) -> User | None:
-        user = await self.session.scalar(
-            select(UserInDB).where(UserInDB.username == username)
-        )
+        user = await self._get_by_username(username)
         if user is None:
             return None
-        return User.model_validate(user, from_attributes=True)
+
+        return _dto_user(user)
 
     async def authenticate_user(self, username: str, password: str) -> User | None:
         user = await self._get_by_username(username)
@@ -106,7 +109,13 @@ class DbUserService:
             return None
         if not verify_password(password, user.password):
             return None
-        return User.model_validate(user, from_attributes=True)
+
+        return _dto_user(user)
+
+
+def _dto_user(db_user: UserInDb) -> User:
+    user = User.model_validate(db_user, from_attributes=True)
+    return user
 
 
 pwd_context: Final = CryptContext(schemes=["bcrypt"], deprecated="auto")

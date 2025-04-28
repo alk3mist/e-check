@@ -71,5 +71,5 @@ async def print_check(
         check_print = await check_service.print_check(check_id)
     except CheckNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    return PlainTextResponse(content=check_print)
+    else:
+        return PlainTextResponse(content=check_print)

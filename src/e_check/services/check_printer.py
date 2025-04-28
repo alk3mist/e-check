@@ -63,7 +63,6 @@ class CheckPrinter:
                 content += "\n"
                 content += _expand("", _df(product.total), self.width)
 
-        # content += f"{product.name} {_df(product.total)}"
         content += "\n"
         return content
 

@@ -63,20 +63,18 @@ class PaginatedResponse[T](BaseModel):
             raise PageOutOfBoundaryError(
                 f"Page {pagination.page} is out of boundary: last page is {last_page}."
             )
-        return cls(
+        response = cls(
             page=pagination.page,
             page_size=pagination.page_size,
             last_page=last_page,
             items=list(items),
         )
+        return response
 
     @classmethod
     def from_full_sequence(
         cls, pagination: Pagination, items: Sequence[T]
     ) -> "PaginatedResponse[T]":
         """Response for a specific page from a whole collection."""
-        return cls.from_iterable(
-            pagination,
-            pagination.slice(items),
-            len(items),
-        )
+        response = cls.from_iterable(pagination, pagination.slice(items), len(items))
+        return response

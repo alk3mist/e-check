@@ -37,7 +37,7 @@ class User(Base):
     password: Mapped[str] = mapped_column(nullable=False)
 
     checks: Mapped[list["Check"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan", uselist=True, lazy="raise"
+        back_populates="user", cascade="all, delete-orphan", lazy="raise"
     )
 
 
