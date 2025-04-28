@@ -10,7 +10,7 @@ At first, install dependencies:
 uv sync --no-project-install
 ```
 
-You'll also need a running Postgres instance.
+You'll also need a running Postgres instance. Project was tested with the 17th version of the PostgreSQL.
 
 Create and modify the `.env` file(add your Postgres settings, etc.):
 
@@ -54,6 +54,8 @@ pytest
 ```bash
 uv run pytest
 ```
+
+Note: tests use the testcontainers package(for Postgres), that uses Docker under the hood, so you'll need Docker to be installed in order to run tests.
 
 ## Documentation page
 
