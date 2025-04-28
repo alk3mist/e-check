@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str
     POSTGRES_USER: str
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = ""
+    POSTGRES_PASSWORD: str
 
     @computed_field
     @property
