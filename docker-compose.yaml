@@ -1,0 +1,38 @@
+services:
+
+  prestart:
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_started
+        restart: true
+
+    command: alembic upgrade head
+    env_file:
+      - .env
+
+  app:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    
+    depends_on:
+      db: 
+        condition: service_started
+      prestart:
+        condition: service_completed_successfully   
+
+    env_file:
+      - .env
+
+  db:
+    image: postgres:17
+    restart: always
+
+    ports:
+      - "5433:5432"
+
+    env_file:
+      - .env
