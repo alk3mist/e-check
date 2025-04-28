@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from e_check.api.dependencies import get_check_service, get_current_user
-from e_check.api.schemas import PaginatedResponse, Pagination
+from e_check.api.schemas import PageOutOfBoundaryError, PaginatedResponse, Pagination
 from e_check.dto import Check, CreateCheck, User
 from e_check.services.checks import CheckNotFoundError, ICheckService
 
@@ -47,7 +47,14 @@ async def list_checks(
         limit=pagination.page_size,
         offset=pagination.offset,
     )
-    return PaginatedResponse[Check].from_iterable(pagination, checks, total_count)
+    try:
+        response = PaginatedResponse[Check].from_iterable(
+            pagination, checks, total_count
+        )
+    except PageOutOfBoundaryError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    else:
+        return response
 
 
 class PlainTextResponse(Response):

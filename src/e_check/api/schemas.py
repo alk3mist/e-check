@@ -6,6 +6,9 @@ from fastapi import Query
 from pydantic import BaseModel, Field
 
 
+class PageOutOfBoundaryError(Exception): ...
+
+
 class Pagination(BaseModel):
     """Pagination parameters."""
 
@@ -57,7 +60,7 @@ class PaginatedResponse[T](BaseModel):
         """Wraps the collection's page into a paginated response."""
         last_page = math.ceil(total_count / pagination.page_size) or 1
         if pagination.page > last_page:
-            raise ValueError(
+            raise PageOutOfBoundaryError(
                 f"Page {pagination.page} is out of boundary: last page is {last_page}."
             )
         return cls(
