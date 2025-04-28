@@ -1,33 +1,34 @@
-from functools import cache
+from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from e_check.db.session import get_session_maker
 from e_check.dto import User
 from e_check.services import auth
-from e_check.services.checks import ICheckService, InMemoryCheckService
-from e_check.services.users import InMemoryUserService, IUserService
+from e_check.services.checks import DbCheckService, ICheckService
+from e_check.services.users import DbUserService, IUserService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
-@cache
-def get_user_service():
-    user_service = InMemoryUserService()
-    user_service.create_user(
-        username="john-boris",
-        full_name="ФОП Джонсонюк Борис",
-        password="super-secret",
-    )
+async def _get_db_session() -> AsyncIterator[AsyncSession]:
+    async_session = get_session_maker()
+    async with async_session() as session:
+        yield session
+
+
+def get_user_service(session: AsyncSession = Depends(_get_db_session)) -> IUserService:
+    user_service = DbUserService(session)
     return user_service
 
 
-@cache
 def get_check_service(
-    user_service: IUserService = Depends(get_user_service),
+    session: AsyncSession = Depends(_get_db_session),
 ) -> ICheckService:
-    return InMemoryCheckService(user_service)
+    return DbCheckService(session)
 
 
 async def get_current_user(
