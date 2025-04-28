@@ -58,7 +58,7 @@ uv run pytest
 ## Documentation page
 
 After starting your application, you may find the API's interactive documentation on
-http://localhost:8000/docs or on http://localhost:8080/docs.
+http://localhost:8000/docs or on http://localhost:8080/docs if you're using docker-compose.
 
 Alternatively, you could use the Redoc read only documentation
-http://localhost:8000/redoc or on http://localhost:8080/redoc.
+http://localhost:8000/redoc or on http://localhost:8080/redoc for docker-compose.
