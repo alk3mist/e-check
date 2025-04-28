@@ -5,9 +5,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from e_check.config import settings
+
 
 def get_db_url() -> str:
-    return "postgresql+psycopg://scott:tiger@localhost/test"
+    return settings.SQLALCHEMY_DATABASE_URI
 
 
 engine = create_async_engine(get_db_url(), isolation_level="SERIALIZABLE")
