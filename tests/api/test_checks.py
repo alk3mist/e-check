@@ -1,3 +1,4 @@
+from collections.abc import Awaitable
 from typing import Any, Protocol
 
 import pytest
@@ -8,14 +9,35 @@ from e_check.services import auth
 from e_check.services.users import IUserService
 
 
+class UserTokenFactory(Protocol):
+    def __call__(
+        self, username: str = "", fullname: str = "", password: str = ""
+    ) -> Awaitable[str]: ...
+
+
 @pytest.fixture
-async def valid_token(user_service: IUserService) -> str:
-    user = await user_service.create_user(
-        username="john",
-        full_name="doe",
-        password="super-secret",
-    )
-    token = auth.create_access_token(data={"sub": user.username})
+async def create_user_token(
+    user_service: IUserService,
+) -> UserTokenFactory:
+    async def _create_user_token(
+        username: str = "john",
+        fullname: str = "doe",
+        password: str = "super-secret",
+    ) -> str:
+        user = await user_service.create_user(
+            username=username,
+            full_name=fullname,
+            password=password,
+        )
+        token = auth.create_access_token(data={"sub": user.username})
+        return token
+
+    return _create_user_token
+
+
+@pytest.fixture
+async def valid_token(create_user_token: UserTokenFactory) -> str:
+    token = await create_user_token()
     return token
 
 
@@ -120,6 +142,36 @@ async def test_authenticated_user_can_list_own_checks(
     assert response.status_code == status.HTTP_200_OK
     items = response.json()["items"]
     assert len(items) == 2
+
+
+@pytest.mark.anyio
+async def test_authenticated_user_cannot_list_checks_from_other_users(
+    client: TestClient,
+    check_factory: CheckFactory,
+    create_user_token: UserTokenFactory,
+):
+    mary_token = await create_user_token(username="mary")
+    mary_check_data = check_factory(
+        {"name": "Дрон FPV з акумулятором", "price": 31000.00, "quantity": 20.00},
+        payment_type="cash",
+    )
+    steven_token = await create_user_token(username="steven")
+    steven_check_data = check_factory(
+        {"name": "Mavic 3T", "price": 298870.00, "quantity": 3.00},
+        payment_type="cash",
+    )
+    _create_checks(client, mary_token, [mary_check_data])
+    _create_checks(client, steven_token, [steven_check_data])
+
+    response = client.get(
+        "/checks",
+        headers={"authorization": f"Bearer {steven_token}"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    items = response.json()["items"]
+    assert len(items) == 1
+    assert items[0]["products"][0]["name"] == "Mavic 3T"
 
 
 @pytest.mark.anyio
