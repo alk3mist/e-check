@@ -178,6 +178,33 @@ async def test_pagination_for_list_of_checks(
     assert float(items[0]["products"][0]["quantity"]) == 4
 
 
+@pytest.mark.anyio
+async def test_filter_list_of_checks_by_check_total(
+    client: TestClient, valid_token: str, check_factory: CheckFactory
+):
+    check_one_data = check_factory(
+        {"name": "Mavic 3T", "price": 100, "quantity": 3.00},
+        {"name": "Дрон FPV з акумулятором", "price": 31000.00, "quantity": 20.00},
+        payment_type="cash",
+    )
+    check_two_data = check_factory(
+        {"name": "Mavic 3T", "price": 100.00, "quantity": 3.00},
+        payment_type="cashless",
+    )
+    _create_checks(client, valid_token, [check_one_data, check_two_data])
+
+    response = client.get(
+        "/checks",
+        params={"check_total_gt": 300},
+        headers={"authorization": f"Bearer {valid_token}"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    items = response.json()["items"]
+    assert len(items) == 1
+    assert float(items[0]["payment"]["amount"]) == check_one_data["payment"]["amount"]
+
+
 def _create_checks(client: TestClient, token: str, checks: list[dict[str, Any]]):
     for check in checks:
         response = client.post(
