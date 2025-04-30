@@ -35,3 +35,8 @@ packages = ["src/e_check"]
 [tool.pytest.ini_options]
 pythonpath = "src"
 testpaths = ["tests"]
+
+# https://github.com/pytest-dev/pytest-cov/issues/596#issuecomment-2183411522
+# https://github.com/nedbat/coveragepy/issues/1216#issuecomment-2276972265
+[tool.coverage.run]
+concurrency = ["greenlet", "thread"]
